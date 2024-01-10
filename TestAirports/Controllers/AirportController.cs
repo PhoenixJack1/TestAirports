@@ -41,6 +41,8 @@ namespace TestAirports.Controllers
         {
             var airport1 = _dao.GetAirport(iata1.ToUpper());
             var airport2 = _dao.GetAirport(iata2.ToUpper());
+            if (airport1 == null || airport2 == null)
+                return "Один из аэропортов не существует";
             AirportCoodinate coord1 = new AirportCoodinate(airport1.Latitude, airport1.Longitude);
             AirportCoodinate coord2 = new AirportCoodinate(airport2.Latitude, airport2.Longitude);
             double distance = _distanceCalculator.CalcDistance(coord1, coord2);
