@@ -1,0 +1,119 @@
+﻿@{
+    Layout = "_LayoutReact";
+}
+<script type="text/babel">
+    class AirportList extends React.Component{
+        constructor(props){
+            super(props);
+            this.state={airports: ["отбытия","прибытия"], iata1: "", iata2: "", result: ""};
+            this.onFillAirport = this.onFillAirport.bind(this);
+        }
+        checkNeedCalc()
+        {
+            if (this.state.iata1!="" && this.state.iata2!="" && this.state.iata1!=this.state.iata2)
+                {
+                    this.setState({result:"Расчёт расстояния"});
+                    var url = this.props.apiUrl + "/" + this.state.iata1+","+this.state.iata2;
+                  var xhr = new XMLHttpRequest();
+                  xhr.open("get", url, true);
+                  xhr.onload = function () {
+                    this.setState({result: xhr.responseText});
+
+                    }.bind(this);
+                     xhr.send();
+                }
+                else
+                this.setState({result:""});
+        }
+        onFillAirport(airportId, iata)
+        {
+            if (airportId==this.state.airports[0])
+                this.state.iata1=iata;    
+            else
+                this.state.iata2=iata;
+       
+            this.checkNeedCalc();
+        }
+        
+        render(){
+            var onFill=this.onFillAirport;
+            return (
+                <form>
+                    <p>Аэропорты</p>
+                    <div>
+                        <OneAirport airportId={this.state.airports[0]} apiUrl={this.props.apiUrl} onTrueStatus={onFill}/>
+                        <OneAirport airportId={this.state.airports[1]} apiUrl={this.props.apiUrl} onTrueStatus={onFill}/>
+                    </div>
+                        <p>Результат: {this.state.result}</p>
+                    </form>
+            )
+        }
+    }
+    class OneAirport extends React.Component{
+        constructor(props){
+            super(props);
+            this.state = {iata: "", city: "", country: "", name: "", airport: ""};
+            this.onIATAChange = this.onIATAChange.bind(this);
+            }
+            setIata(val){
+                return{iata: val};
+            }
+             onIATAChange(e) {
+                 if (e.target.value.length>3) return;
+                 this.setState(this.setIata(e.target.value));
+                if (e.target.value.length<3)
+                {
+                    this.setState({city: "", country: "", name: "", airport: ""});
+                    this.props.onTrueStatus(this.props.airportId, "");
+                }
+                else
+                {
+                  this.setState({airport: "Поиск аэропорта"});
+                  var url = this.props.apiUrl + "/" + e.target.value;
+                  var xhr = new XMLHttpRequest();
+                  xhr.open("get", url, true);
+                  xhr.onload = function () {
+                    var data = JSON.parse(xhr.responseText);
+                    if (data.error === null)
+                    {
+                        this.setState({ country:data.city.country.name, city:data.city.name, name:data.name });
+                        this.setState({airport: "Широта: " +data.latitude+" Долгота: "+data.longitude });
+                         this.props.onTrueStatus(this.props.airportId, this.state.iata);
+                    }
+                    else
+                    {
+                        this.setState({airport: data.error});
+                        this.props.onTrueStatus(this.props.airportId, "");
+                    }
+                    
+                    }.bind(this);
+                     xhr.send();
+                }
+            }
+            render(){
+            return (
+                <form>
+                    <p>
+                        Аэропорт {this.props.airportId}
+                        <input type="text"
+                             placeholder="Введите IATA код аэропорта"
+                             value={this.state.iata}
+                             onChange={this.onIATAChange}
+                             />
+                    </p>
+                    <p>Страна {this.state.country}</p>
+                    <p>Город {this.state.city}</p>
+                    <p>Название аэропорта {this.state.name}</p>
+                    <p>{this.state.airport}</p>
+
+                </form>
+            )
+        }
+    }
+
+
+     ReactDOM.render(
+            <AirportList apiUrl="/airports"/>,
+      document.getElementById("content")
+    );
+</script>
